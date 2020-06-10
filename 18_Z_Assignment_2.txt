@@ -1,0 +1,86 @@
+Learning Objectives:-
+Create the cron job in the cluster
+Allow the cron job to run successfully
+
+Problem Statement:-
+Your company has a simple data cleanup process that is run periodically for maintenance purposes. 
+They would like to stop doing this manually in order to save time, so you have been asked to implement a cron job in the Kubernetes cluster to run this process. 
+Create a cron job called cleanup-cronjob using the linuxacademycontent/data-cleanup:1 image. Have the job run every minute with the following cron expression: */1 * * * *.
+
+=======================
+
+$ cat cronjob.yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cleanup-cronjob
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cleanup-cronjob
+            image: linuxacademycontent/data-cleanup:1
+            args:
+            - /bin/sh
+            - -c
+            - date; echo cleanup the data process
+          restartPolicy: OnFailure
+$
+$ kubectl create -f cronjob.yaml
+cronjob.batch/cleanup-cronjob created
+$ kubectl get cronjob
+NAME              SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+cleanup-cronjob   */1 * * * *   False     0        27s             33s
+$
+$
+$ kubectl get jobs --watch
+NAME                         COMPLETIONS   DURATION   AGE
+cleanup-cronjob-1591364280   1/1           5s         79s
+cleanup-cronjob-1591364340   1/1           2s         19s
+$
+$ kubectl describe cronjob cleanup-cronjob
+Name:                          cleanup-cronjob
+Namespace:                     default
+Labels:                        <none>
+Annotations:                   <none>
+Schedule:                      */1 * * * *
+Concurrency Policy:            Allow
+Suspend:                       False
+Successful Job History Limit:  3
+Failed Job History Limit:      1
+Starting Deadline Seconds:     <unset>
+Selector:                      <unset>
+Parallelism:                   <unset>
+Completions:                   <unset>
+Pod Template:
+  Labels:  <none>
+  Containers:
+   cleanup-cronjob:
+    Image:      linuxacademycontent/data-cleanup:1
+    Port:       <none>
+    Host Port:  <none>
+    Args:
+      /bin/sh
+      -c
+      date; echo cleanup the data process
+    Environment:     <none>
+    Mounts:          <none>
+  Volumes:           <none>
+Last Schedule Time:  Fri, 05 Jun 2020 13:41:00 +0000
+Active Jobs:         <none>
+Events:
+  Type    Reason            Age    From                Message
+  ----    ------            ----   ----                -------
+  Normal  SuccessfulCreate  4m5s   cronjob-controller  Created job cleanup-cronjob-1591364280
+  Normal  SawCompletedJob   3m55s  cronjob-controller  Saw completed job: cleanup-cronjob-1591364280, status: Complete
+  Normal  SuccessfulCreate  3m5s   cronjob-controller  Created job cleanup-cronjob-1591364340
+  Normal  SawCompletedJob   2m55s  cronjob-controller  Saw completed job: cleanup-cronjob-1591364340, status: Complete
+  Normal  SuccessfulCreate  2m     cronjob-controller  Created job cleanup-cronjob-1591364400
+  Normal  SawCompletedJob   110s   cronjob-controller  Saw completed job: cleanup-cronjob-1591364400, status: Complete
+  Normal  SuccessfulCreate  60s    cronjob-controller  Created job cleanup-cronjob-1591364460
+  Normal  SawCompletedJob   50s    cronjob-controller  Saw completed job: cleanup-cronjob-1591364460, status: Complete
+  Normal  SuccessfulDelete  50s    cronjob-controller  Deleted job cleanup-cronjob-1591364280
+$

@@ -1,0 +1,285 @@
+Learning Objectives:-
+Perform a rolling update of the container version
+Roll back to the previous working state
+
+
+Problem Statement:-
+Your company's developers have just finished developing a new version of their candy-themed mobile game. 
+They are ready to update the backend services that are running in your Kubernetes cluster. There is a deployment in the cluster managing the replicas for this application. 
+The deployment is called candy-deployment. 
+
+candy-deployment.yaml
+--------------------------
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: candy-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: candy-ws
+  template:
+    metadata:
+      labels:
+        app: candy-ws
+    spec:
+      containers:
+      - image: linuxacademycontent/candy-service:2
+        name: candy-ws
+
+
+You have been asked to update the image for the container named candy-ws in this deployment template to a new version, linuxacademycontent/candy-service:3.
+
+After you have updated the image using a rolling update, check on the status of the update to make sure it is working. If it is not working, perform a rollback to the previous state.
+
+Make sure that the rolling update is in such a way that atleast 25% of pods are up and running during update with Zero downtime.
+
+=====================================
+
+You have been asked to update the image for the container named candy-ws in this deployment template to a new version, linuxacademycontent/candy-service:3.
+Answer : -
+$
+$ kubectl rollout status deployments/candy-deployment
+deployment "candy-deployment" successfully rolled out
+$
+$
+$ kubectl set image deployments/candy-deployment candy-deployment=linuxacademycontent/candy-service:3
+deployment.apps/candy-deployment image updated
+$
+$ kubectl get deployments
+NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
+kubernetes-bootcamp   1/2     2             1          25s
+$
+================================
+
+After you have updated the image using a rolling update, check on the status of the update to make sure it is working. If it is not working, perform a rollback to the previous state.
+Answer :- 
+$
+$ kubectl rollout undo deployments/candy-deployment
+deployment.apps/candy-deployment rolled back
+$
+
+$ kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+candy-deployment-7d6f8694b6-ncd7s   1/1     Running   0          54s
+candy-deployment-7d6f8694b6-dbq5g   1/1     Running   0          54s
+$
+
+=================
+
+Make sure that the rolling update is in such a way that atleast 25% of pods are up and running during update with Zero downtime.
+
+Answer : -
+
+ strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: candy-ws
+
+
+=========================================================================================
+
+Detailed Soulution ::
+
+$
+$ kubectl get deploy
+No resources found in default namespace.
+$
+$
+$ kubectl create -f candy-deployment.yaml --record
+deployment.extensions/v1beta1/candy-deployment created
+$
+$ kubectl get deploy
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+candy-deployment   2/2     2            0           19s
+$
+
+$ kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+candy-deployment-7f96bc678-4p2b7   1/1     Running   0          54s
+candy-deployment-7f96bc678-4w2mf   1/1     Running   0          54s
+$
+
+$ kubectl describe pods
+Name:         candy-deployment-7f96bc678-4p2b7
+Namespace:    default
+Priority:     0
+Node:         minikube/172.17.0.75
+Start Time:   Mon, 08 Jun 2020 06:06:16 +0000
+Labels:       app=candy-ws
+              pod-template-hash=7f96bc678
+Annotations:  <none>
+Status:       Running
+IP:           172.18.0.4
+IPs:
+  IP:           172.18.0.4
+Controlled By:  ReplicaSet/candy-deployment-7f96bc678
+Containers:
+  candy-ws:
+    Container ID:   docker://9fc593276fff57c1c01061da98bd42d549eac742a689c61a68136bc25ce37f74
+    Image:          linuxacademycontent/candy-service:2
+    Image ID:       docker-pullable://linuxacademycontent/candy-service@sha256:614fb2c1f251a53968564f0ab22576e6af4236df8c65e19508062541a54bf4fa
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Mon, 08 Jun 2020 06:06:40 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-hhnk8 (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  default-token-hhnk8:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-hhnk8
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  20m   default-scheduler  Successfully assigned default/candy-deployment-7f96bc678-4p2b7 to minikube
+  Normal  Pulling    20m   kubelet, minikube  Pulling image "linuxacademycontent/candy-service:2"
+  Normal  Pulled     20m   kubelet, minikube  Successfully pulled image "linuxacademycontent/candy-service:2"
+  Normal  Created    19m   kubelet, minikube  Created container candy-ws
+  Normal  Started    19m   kubelet, minikube  Started container candy-ws
+
+
+Name:         candy-deployment-7f96bc678-4w2mf
+Namespace:    default
+Priority:     0
+Node:         minikube/172.17.0.75
+Start Time:   Mon, 08 Jun 2020 06:06:16 +0000
+Labels:       app=candy-ws
+              pod-template-hash=7f96bc678
+Annotations:  <none>
+Status:       Running
+IP:           172.18.0.6
+IPs:
+  IP:           172.18.0.6
+Controlled By:  ReplicaSet/candy-deployment-7f96bc678
+Containers:
+  candy-ws:
+    Container ID:   docker://a956281d09f299493e53e87fcd45bd59c23535b8bf31f37a07d9cb2bb751c62e
+    Image:          linuxacademycontent/candy-service:2
+    Image ID:       docker-pullable://linuxacademycontent/candy-service@sha256:614fb2c1f251a53968564f0ab22576e6af4236df8c65e19508062541a54bf4fa
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Mon, 08 Jun 2020 06:06:40 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-hhnk8 (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  default-token-hhnk8:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-hhnk8
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  20m   default-scheduler  Successfully assigned default/candy-deployment-7f96bc678-4w2mf to minikube
+  Normal  Pulling    20m   kubelet, minikube  Pulling image "linuxacademycontent/candy-service:2"
+  Normal  Pulled     19m   kubelet, minikube  Successfully pulled image "linuxacademycontent/candy-service:2"
+  Normal  Created    19m   kubelet, minikube  Created container candy-ws
+  Normal  Started    19m   kubelet, minikube  Started container candy-ws
+$
+
+$ kubectl expose deploy candy-deployment --target-port 80 --port 8081 --type LoadBalancer --name appdeployment --external-ip 172.17.0.75
+service/candydeployment exposed
+$
+$
+$
+$ kubectl get svc
+NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+appdeployment         LoadBalancer   10.107.71.130    172.17.0.75   8081:32474/TCP   32s
+
+$ curl http://10.107.71.130
+$ curl http://10.107.71.130:8081
+Welcome to the backend candy service!
+$
+
+$ kubectl rollout history deploy candy-deployment
+deployment.extensions/v1beta1/candy-deployment
+REVISION  CHANGE-CAUSE
+1         kubectl create --filename=candy-deployment.yaml --record=true
+
+$
+
+
+$ kubectl describe services/candy-deployment
+Name:                     candy-deployment
+Namespace:                default
+Labels:                   run=candy-ws
+Annotations:              <none>
+Selector:                 run=candy-ws
+Type:                     NodePort
+IP:                       10.105.234.203
+Port:                     <unset>  8080/TCP
+TargetPort:               8080/TCP
+NodePort:                 <unset>  30773/TCP
+Endpoints:                172.18.0.10:8080,172.18.0.11:8080,172.18.0.12:8080 + 1 more...
+Session Affinity:         None
+External Traffic Policy:  Cluster
+Events:                   <none>
+$
+
+$ export NODE_PORT=$(kubectl get services/candy-deployment -o go-template='{{(index .spec.ports 0).nodePort}}')
+$ echo NODE_PORT=$NODE_PORT
+NODE_PORT=30773
+$
+
+$ curl $(minikube ip):$NODE_PORT
+Welcome to the backend candy service! | Running on: candy-deployment-7f96bc678-4p2b7 | v=2
+$
+$
+$ kubectl rollout status deployments/candy-deployment
+deployment "candy-deployment" successfully rolled out
+$
+$
+$ kubectl set image deployments/candy-deployment candy-deployment=linuxacademycontent/candy-service:3
+deployment.apps/candy-deployment image updated
+$
+$ kubectl get deployments
+NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
+kubernetes-bootcamp   1/2     2             1          25s
+$
+
+$
+$ kubectl rollout undo deployments/candy-deployment
+deployment.apps/candy-deployment rolled back
+$
+
+$ kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+candy-deployment-7d6f8694b6-ncd7s   1/1     Running   0          54s
+candy-deployment-7d6f8694b6-dbq5g   1/1     Running   0          54s
+$
+
